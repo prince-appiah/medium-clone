@@ -11,7 +11,7 @@ export const getStaticPaths = async () => {
     *[_type == 'post'] {
       _id,
       slug {
-          current
+        current
       }, 
       
     }
@@ -28,7 +28,7 @@ export const getStaticPaths = async () => {
 
 export const getStaticProps: GetStaticProps = async ({ params }) => {
   const response = `
-    *[_type == 'post' && slug.current == 'this-is-the-second-post'][0] {
+    *[_type == 'post' && slug.current == $slug][0] {
       _id,
       _createdAt,
       title,
@@ -36,10 +36,8 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
       description,
       mainImage,
       body,
-      comments: *[_type == 'comment' && post._ref == ^._slug, approved==true] {
-
-      },
-      author {
+      'comments': *[_type == 'comment' && post._ref == ^._id && approved == true],
+      author -> {
         name,
         image
       },
@@ -51,6 +49,7 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
   if (!post) {
     return { notFound: true };
   }
+
   return { props: { post }, revalidate: 60 };
 };
 
@@ -71,6 +70,7 @@ const Post = ({ post }: Props) => {
 
   const onSubmit: SubmitHandler<IForm> = async (data) => {
     try {
+      setSubmitted(false);
       console.log("🚀 ~ data", data);
       const res = await fetch("/api/comments", {
         method: "POST",
@@ -79,7 +79,7 @@ const Post = ({ post }: Props) => {
 
       console.log("🚀 ~ res", res);
 
-      // await sanityClient.create()
+      // await sanityClient.create(res)
     } catch (error) {
       console.log("🚀 ~ error", error);
     }
@@ -133,14 +133,15 @@ const Post = ({ post }: Props) => {
       <div className="flex flex-col p-10 mx-auto my-10 space-y-2 shadow shadow-yellow-500">
         <h3 className="text-4xl">Comments</h3>
         <hr className="pb-2 " />
-        {post.comment.map((item) => (
-          <div className="" key={item._id}>
-            <p className="">
-              <span className="text-yellow-500">{item.name}</span>:{" "}
-              {item.comment}
-            </p>
-          </div>
-        ))}
+        {post.comment &&
+          post.comment.map((item) => (
+            <div className="" key={item._id}>
+              <p className="">
+                <span className="text-yellow-500">{item.name}</span>:{" "}
+                {item.comment}
+              </p>
+            </div>
+          ))}
       </div>
 
       {/* Comment Form  */}
